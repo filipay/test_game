@@ -20,8 +20,8 @@ app.use(express.static(path.join(__dirname,'public'), {
 //Bind server to port 8080 if default is not available
 var server = require('http').createServer(app).listen(process.env.PORT || 8080);
 var io = require('socket.io').listen(server);
-game.init();
+// game.init();
 //Handle connections through the game backend
 io.sockets.on('connection', function (socket) {
-    game.init(io, socket);
+  game.init(io, socket);
 });
