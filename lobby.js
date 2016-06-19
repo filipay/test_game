@@ -1,84 +1,100 @@
 function Lobby(){
+
   var self = this;
+  self.activeRooms = {};
+  self.players = {};
 
   self.init = function (io, socket) {
     console.log("Initalising.");
     self.io = io;
     self.gameSocket = socket;
 
-    self.activeGames = {};
 
     self._bindTriggers();
   };
 
   self._bindTriggers = function () {
     console.log("Binding triggers.");
-    self.gameSocket.on('createGame', self.createGame);
     self.gameSocket.on('joinGame', self.connect);
     self.gameSocket.on('leaveGame', self.disconnect);
-    self.gameSocket.on('sendActiveGames', self.sendActiveGames);
+    self.gameSocket.on('requestRooms', self.sendActiveRooms);
   };
 
-  self.createGame = function (data) {
-    var roomId = -1;
-    console.log(data);
-    do {
-      roomId = Math.floor((Math.random() * 100000)).toString();
-    } while (self.activeGames[roomId] !== undefined);
-    console.log("Created room with id: " + roomId);
-    // console.log(self.gameSocket);
-    data.roomId = roomId;
-    data.player.socket = this;
-    self.connect(data);
-  };
 
   self.connect = function (data) {
+    if (!data.room.roomId) {
+
+      var roomId = -1;
+      console.log(data);
+
+      do {
+        roomId = Math.floor((Math.random() * 100000)).toString();
+      } while (self.activeRooms[roomId] !== undefined);
+
+      console.log("Created room with id: " + roomId);
+
+      data.room.roomId = roomId;
+    }
+
+    data.player.socket = this;
+
     console.log(data.player.username + " connected");
 
-    var room = self.activeGames[data.roomId] || new Room(data);
+    var room = self.activeRooms[data.room.roomId] || new Room(data.room);
     room.addPlayer(data.player, function (err) {
-      if (err) throw err;
+      if (err) console.log(err);
     });
 
-    self.activeGames[data.roomId] = room;
-    data.player.socket.join(data.roomId);
+    self.activeRooms[data.room.roomId] = room;
+    self.players[this.id] = data.player;
+    this.join(data.room.roomId);
   };
 
   self.disconnect = function () {
 
   };
 
-  self.sendActiveGames = function () {
-    this.emit('showActiveGames', self.activeGames);
-    console.log(self.activeGames);
+  self.sendActiveRooms = function () {
+    var rooms = [];
+    Object.keys(self.activeRooms).forEach(function (roomId) {
+      rooms.push(self.activeRooms[roomId].info());
+    });
+    this.emit('showRooms', rooms);
+    console.log(rooms);
+    console.log(Object.keys(self.activeRooms));
   };
 }
 
 function Room(data) {
   var self = this;
-
+  console.log(data);
   self.name = data.name;
-  self.players = [];
+  self.players = {};
   self.maxPlayers = data.maxPlayers;
   self._id = data.roomId;
 
   self.addPlayer = function (player, callback) {
-    var min_player = {
-      username: player.username,
-      socketId: player.socketId
-    };
 
     var err;
-    if (self.players.some(function (p) {
-      return p.username === player.username;
-    })) {
+    if (self.players[player.username]){
       err = new Error(player.username + " already exists!");
-    } else if (self.players.length === self.maxPlayers) {
+    } else if (Object.keys(self.players).length === self.maxPlayers) {
       err = new Error(player.username + " maximum players reached!");
-      self.players.push(min_player);
     } else {
+      self.players[player.username] = player;
+      player.inRoom = self._id;
     }
     if (callback) callback(err);
+
+  };
+
+  self.info = function () {
+    return {
+      id: self._id,
+      name: self.name,
+      noPlayers : Object.keys(self.players).length + ' / ' + self.maxPlayers,
+      players: Object.keys(self.players)
+    };
   };
 }
 
