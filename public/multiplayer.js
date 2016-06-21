@@ -24,24 +24,22 @@ $(function () {
 
     _bindTriggers: function () {
       App.$doc.on('click', '#join-room', App.requestRooms);
-      // App.$doc.on('click', '#create-room', App.listRooms);
+      App.$doc.on('click', '#create-room', App.newRoomForm);
     },
 
     requestRooms: function () {
       IO.socket.emit('requestRooms');
     },
 
-
     listRooms: function (data) {
+
       var template = $('<div/>').html($('#join-room-list').html());
       var listing_template = template.find('.room');
       var list = template.find('.list-group');
-      list.html('');
-      // console.log(data);
-      console.log(data);
+      list.empty();
+
       data.forEach(function (room) {
         var listing = listing_template.clone();
-        console.log(listing.html());
         listing.find('.name').html(room.name + listing.find('.name').html());
         listing.find('.description').html('Number of players: ' + room.noPlayers + ' | Players: ' + room.players);
         listing.prop('data-room-id', room.id);
@@ -56,9 +54,34 @@ $(function () {
 
         list.append(listing);
       });
-      $('.list-group').html('');
+      $('.list-group').remove();
       list.insertAfter('#join-room');
-      console.log(list.html());
+    },
+
+    newRoomForm: function () {
+
+      var template = $('<div/>').html($('#create-room-template').html());
+
+      template.find('button').on('click', App.processForm);
+
+      $('.create-room-form').remove();
+      template.insertAfter('#create-room');
+    },
+
+    processForm: function () {
+      var roomName = $('#room-name');
+      var maxPlayers = $('#room-max');
+
+      IO.socket.emit('joinGame', {
+        room: {
+          name: roomName.val(),
+          maxPlayers: parseInt(maxPlayers.val())
+        },
+        player: App.player
+      });
+
+      roomName.val('');
+      maxPlayers.val('');
     },
 
     test: function () {
