@@ -47,7 +47,7 @@ $(function () {
           IO.socket.emit('joinGame', {
             player: App.player,
             room: {
-              roomId: '123'
+              roomId: ''+room.id
             }
           });
         });
@@ -88,7 +88,7 @@ $(function () {
 
       App.player = {
         name: 'Ayy',
-        username: 'Lmao'
+        username: 'Lmao' + Math.floor(Math.random() * 100)
       };
 
       IO.socket.emit('joinGame', {

@@ -94,16 +94,18 @@ function Room(data) {
     var err;
     if (self.players[player.username]) {
 
-      err = new Error(player.username + " already exists!");
+      err = new Error(player.username + " already exists in room: " + self._id);
 
     } else if (Object.keys(self.players).length === self.maxPlayers) {
 
-      err = new Error(player.username + " maximum players reached!");
+      err = new Error(player.username + " maximum players reached in room: " + self._id);
 
     } else {
 
       self.players[player.username] = player;
       player.inRoom = self._id;
+
+      console.log(player.username + " added to room: " + self._id);
 
     }
     if (callback) callback(err);
@@ -117,8 +119,9 @@ function Room(data) {
     } else if (player.inRoom !== self._id) {
       err = new Error(player.username + ' room ID doesn\'t match this room!');
     } else {
-      self.players[player.username] = undefined;
+      delete self.players[player.username];
       player.inRoom = undefined;
+      console.log(player.username + " removed from room: " + self._id);
     }
     if (callback) callback(err);
   };
