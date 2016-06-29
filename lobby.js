@@ -1,9 +1,14 @@
-function Lobby(){
+/*
+  Handles connections and movement inbetween rooms
+*/
 
+function Lobby(){
+  //Self needs to be declared to reference within internal functions
   var self = this;
   self.rooms = {};
   self.players = {};
 
+  //Initialise a connection
   self.init = function (io, socket) {
     console.log("Initalising.");
     self.io = io;
@@ -13,6 +18,7 @@ function Lobby(){
     self._bindTriggers();
   };
 
+  //Bind the events
   self._bindTriggers = function () {
     console.log("Binding triggers.");
     self.gameSocket.on('joinGame', self.connect);
@@ -20,13 +26,20 @@ function Lobby(){
     self.gameSocket.on('requestRooms', self.sendActiveRooms);
   };
 
-
+  /*
+  On connect, add user to a room or create a new one with given parameters
+  If a player is in a room, remove them from said room and place them in the desired one
+  */
   self.connect = function (data) {
+
+    //Check if user wants to join a room
+    //If not generete a new room id
     if (!data.room.roomId) {
 
       var roomId = -1;
       console.log(data);
 
+      //Generate random IDs until available space is found
       do {
         roomId = Math.floor((Math.random() * 100000)).toString();
       } while (self.rooms[roomId] !== undefined);
@@ -34,28 +47,32 @@ function Lobby(){
       console.log("Created room with id: " + roomId);
 
       data.room.roomId = roomId;
-      data.room.callback = self.sendActiveRooms;
     }
 
+    //Assign the current socket to the player
     data.player.socket = this;
 
     console.log(data.player.username + " connected");
 
+    //Check if room is availale, otherwise generate a new one
     var room = self.rooms[data.room.roomId] || new Room(data.room);
-
     self.rooms[data.room.roomId] = room;
 
+    //See if the player already exists in game, if not create a new one
     var player = self.players[data.player.username] || data.player;
 
     self.players[player.username] = player;
     this.join(data.room.roomId);
 
+    //Check if player belongs to a room already, if so remove them from the room
     if (player.inRoom) {
       console.log("Switching rooms..");
       self.rooms[player.inRoom].removePlayer(player, function (err) {
         if (err) console.log(err);
       });
     }
+
+    //Add a user to a room and notify everyone
     room.addPlayer(player, function (err) {
       if (err) console.log(err);
       self.sendActiveRooms(true);
@@ -63,12 +80,15 @@ function Lobby(){
 
   };
 
+  //TODO handle user disconnect
   self.disconnect = function () {
 
   };
 
+  // Send information about the available rooms in an accessible format
   self.sendActiveRooms = function (all) {
     var rooms = [];
+
     Object.keys(self.rooms).forEach(function (roomId) {
       rooms.push(self.rooms[roomId].info());
     });
@@ -82,14 +102,19 @@ function Lobby(){
   };
 }
 
+
+//Handles room stuff
 function Room(data) {
+
   var self = this;
-  console.log(data);
   self.name = data.name;
   self.players = {};
   self.maxPlayers = data.maxPlayers;
   self._id = data.roomId;
+  console.log(data);
 
+
+  // Adds player to the room
   self.addPlayer = function (player, callback) {
     var err;
     if (self.players[player.username]) {
@@ -111,11 +136,12 @@ function Room(data) {
     if (callback) callback(err);
   };
 
+  //Removes player from the room
   self.removePlayer = function (player, callback) {
     var err;
 
     if (!self.players[player.username]) {
-      err = new Error(player.username + ' isn\'t presnet in the room!');
+      err = new Error(player.username + ' isn\'t present in the room!');
     } else if (player.inRoom !== self._id) {
       err = new Error(player.username + ' room ID doesn\'t match this room!');
     } else {
@@ -126,6 +152,7 @@ function Room(data) {
     if (callback) callback(err);
   };
 
+  // Returns the summary of the room
   self.info = function () {
     return {
       id: self._id,
