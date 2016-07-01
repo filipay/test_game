@@ -5,12 +5,14 @@ Simple script to set up the backend
 **/
 
 //Import relevant libraries
+require('./app/util');
+require('./app/system');
 var express = require('express');
 var path = require('path');
 
 var app = express();
 
-var game = require('./lobby');
+var game = require('./app/lobby');
 
 //Use the html extensions
 app.use(express.static(path.join(__dirname,'public'), {
@@ -21,6 +23,7 @@ app.use(express.static(path.join(__dirname,'public'), {
 var server = require('http').createServer(app).listen(process.env.PORT || 8080);
 var io = require('socket.io').listen(server);
 // game.init();
+
 //Handle connections through the game backend
 io.sockets.on('connection', function (socket) {
   game.init(io, socket);

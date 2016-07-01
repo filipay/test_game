@@ -1,8 +1,7 @@
 /*
   Handles connections and movement inbetween rooms
 */
-
-function Lobby(){
+var Lobby = function() {
   //Self needs to be declared to reference within internal functions
   var self = this;
   self.rooms = {};
@@ -22,7 +21,7 @@ function Lobby(){
   self._bindTriggers = function () {
     console.log("Binding triggers.");
     self.gameSocket.on('joinGame', self.connect);
-    self.gameSocket.on('leaveGame', self.disconnect);
+    self.gameSocket.on('disconnect', self.disconnect);
     self.gameSocket.on('requestRooms', self.sendActiveRooms);
   };
 
@@ -82,7 +81,7 @@ function Lobby(){
 
   //TODO handle user disconnect
   self.disconnect = function () {
-
+    console.log(this.id + ' disconnected');
   };
 
   // Send information about the available rooms in an accessible format
@@ -100,11 +99,11 @@ function Lobby(){
     console.log(rooms);
     console.log(Object.keys(self.rooms));
   };
-}
+};
 
 
 //Handles room stuff
-function Room(data) {
+var Room = function (data) {
 
   var self = this;
   self.name = data.name;
@@ -161,8 +160,7 @@ function Room(data) {
       players: Object.keys(self.players)
     };
   };
-}
+};
 
 //Create a lobby and export it
-var lobby = new Lobby();
-exports.init = lobby.init;
+module.exports = new Lobby();
