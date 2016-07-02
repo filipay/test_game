@@ -116,7 +116,7 @@ $(function () {
   IO.init();
   App.init();
   App.test();
-  window.onunload = function () {
+  $( window ).unload = function () {
     IO.disconnect();
   };
 });
